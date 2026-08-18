@@ -63,29 +63,95 @@ else
     fi
 fi
 
-# --- Step 3: Repository Setup ---
-echo -e "\n${YELLOW}Step 3: Setting Up Repository...${NC}"
-REPO_URL="https://github.com/Ibrahimgamal99/OpDesk.git"
 
-if [ -d "$PROJECT_ROOT/.git" ]; then
-    echo -e "${YELLOW}Pulling latest code from GitHub...${NC}"
-    cd "$PROJECT_ROOT"
-    git fetch origin
-    BEFORE=$(git rev-parse HEAD)
-    git pull origin "$(git rev-parse --abbrev-ref HEAD)" || { echo -e "${RED}git pull failed. Check connectivity or resolve conflicts manually.${NC}"; exit 1; }
-    AFTER=$(git rev-parse HEAD)
-    if [ "$BEFORE" != "$AFTER" ]; then
-        echo -e "${GREEN}Code updated: $BEFORE -> $AFTER${NC}"
-    else
-        echo -e "${GREEN}Already up to date.${NC}"
-    fi
-else
-    sudo rm -rf "$PROJECT_ROOT"
-    sudo mkdir -p "$(dirname "$PROJECT_ROOT")"
-    sudo git clone "$REPO_URL" "$PROJECT_ROOT"
-    sudo chown -R "$USER:$USER" "$PROJECT_ROOT"
-    cd "$PROJECT_ROOT"
+# ===============================================================
+# VOIPIRAN: GitHub repository setup is disabled.
+# VOIPIRAN: OpDesk is delivered as an offline bundled project.
+# VOIPIRAN: Do NOT clone, fetch, pull, or remove /opt/OpDesk.
+# ===============================================================
+# --- Step 3: Repository Setup ---
+# echo -e "\n${YELLOW}Step 3: Setting Up Repository...${NC}"
+# REPO_URL="https://github.com/Ibrahimgamal99/OpDesk.git"
+
+# if [ -d "$PROJECT_ROOT/.git" ]; then
+    # echo -e "${YELLOW}Pulling latest code from GitHub...${NC}"
+    # cd "$PROJECT_ROOT"
+    # git fetch origin
+    # BEFORE=$(git rev-parse HEAD)
+    # git pull origin "$(git rev-parse --abbrev-ref HEAD)" || { echo -e "${RED}git pull failed. Check connectivity or resolve conflicts manually.${NC}"; exit 1; }
+    # AFTER=$(git rev-parse HEAD)
+    # if [ "$BEFORE" != "$AFTER" ]; then
+        # echo -e "${GREEN}Code updated: $BEFORE -> $AFTER${NC}"
+    # else
+        # echo -e "${GREEN}Already up to date.${NC}"
+    # fi
+# else
+    # sudo rm -rf "$PROJECT_ROOT"
+    # sudo mkdir -p "$(dirname "$PROJECT_ROOT")"
+    # sudo git clone "$REPO_URL" "$PROJECT_ROOT"
+    # sudo chown -R "$USER:$USER" "$PROJECT_ROOT"
+    # cd "$PROJECT_ROOT"
+# fi
+
+
+
+# ===============================================================
+# VOIPIRAN: Prepare offline OpDesk project
+#
+# The OpDesk source is bundled inside the VOIPIRAN ContactCenter
+# package. GitHub installation is intentionally disabled.
+#
+# The main installer expects the application to exist at:
+#   /opt/OpDesk
+#
+# Therefore copy the bundled project to the final installation
+# directory before Step 8 accesses /opt/OpDesk/backend.
+# ===============================================================
+
+VOIPIRAN_SOURCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo ""
+echo "====================================="
+echo "Preparing offline OpDesk project"
+echo "====================================="
+echo ""
+
+if [ ! -d "$VOIPIRAN_SOURCE_ROOT/backend" ]; then
+    echo -e "${RED}ERROR: Bundled OpDesk backend was not found:${NC}"
+    echo "$VOIPIRAN_SOURCE_ROOT/backend"
+    exit 1
 fi
+
+if [ ! -d "$VOIPIRAN_SOURCE_ROOT/frontend" ]; then
+    echo -e "${RED}ERROR: Bundled OpDesk frontend was not found:${NC}"
+    echo "$VOIPIRAN_SOURCE_ROOT/frontend"
+    exit 1
+fi
+
+mkdir -p "$PROJECT_ROOT"
+
+echo "Copying bundled OpDesk project to:"
+echo "$PROJECT_ROOT"
+
+cp -a "$VOIPIRAN_SOURCE_ROOT/backend" "$PROJECT_ROOT/"
+cp -a "$VOIPIRAN_SOURCE_ROOT/frontend" "$PROJECT_ROOT/"
+
+# Copy required root-level application files.
+for FILE in start.sh requirements.txt package.json package-lock.json; do
+    if [ -f "$VOIPIRAN_SOURCE_ROOT/$FILE" ]; then
+        cp -a "$VOIPIRAN_SOURCE_ROOT/$FILE" "$PROJECT_ROOT/"
+    fi
+done
+
+chmod +x "$PROJECT_ROOT/start.sh" 2>/dev/null || true
+
+echo -e "${GREEN}Offline OpDesk project prepared successfully.${NC}"
+
+
+
+
+
+
 
 # --- Step 4: NVM & Node 24 ---
 echo -e "\n${YELLOW}Step 4: Installing NVM & Node.js 24...${NC}"
@@ -587,59 +653,90 @@ if [ -z "$OPDESK_DOMAIN" ] && [ -f "$PROJECT_ROOT/backend/.env" ]; then
 fi
 
 # --- Domain / certificate interactive prompt ---
-if [ "$IS_UPDATE" == "true" ]; then
-    if [ -n "$OPDESK_DOMAIN" ]; then
-        echo -e "${BLUE}Current domain: $OPDESK_DOMAIN${NC}"
-        echo -e "  ${GREEN}1)${NC} Keep current domain ($OPDESK_DOMAIN)"
-        echo -e "  ${GREEN}2)${NC} Change domain"
-        echo -e "  ${GREEN}3)${NC} Force-renew certificate for $OPDESK_DOMAIN"
-        echo -ne "Choose [1/2/3] (default: 1): "
-        read -r _domain_choice
-        case "${_domain_choice:-1}" in
-            2)
-                echo -ne "  Enter new domain (e.g. op-desk.com): "
-                read -r _new_domain
-                [ -n "$_new_domain" ] && OPDESK_DOMAIN="$_new_domain"
-                ;;
-            3)
-                echo -e "${YELLOW}Force-renewing certificate for $OPDESK_DOMAIN...${NC}"
-                if ! command_exists certbot; then
-                    echo -e "${RED}certbot not found — cannot renew.${NC}"
-                else
-                    # Use standalone so certbot is not blocked by the current nginx config
-                    _nginx_was_active=false
-                    systemctl is-active --quiet nginx 2>/dev/null && _nginx_was_active=true
-                    sudo systemctl stop nginx 2>/dev/null || true
-                    sudo certbot certonly --standalone -d "$OPDESK_DOMAIN" \
-                        --non-interactive --agree-tos \
-                        -m "${OPDESK_LE_EMAIL:-admin@$OPDESK_DOMAIN}" \
-                        --force-renewal 2>/dev/null \
-                        && echo -e "${GREEN}Certificate renewed successfully.${NC}" \
-                        || echo -e "${RED}Renewal failed. Run: sudo certbot renew${NC}"
-                    "$_nginx_was_active" && sudo systemctl start nginx 2>/dev/null || true
-                fi
-                ;;
-        esac
-    else
-        echo -e "${YELLOW}No domain configured for this installation.${NC}"
-        echo -e "  ${BLUE}Enter a domain to enable trusted HTTPS, or press Enter to keep self-signed.${NC}"
-        echo -ne "  Domain (e.g. op-desk.com) or Enter to skip: "
-        read -r _new_domain
-        [ -n "$_new_domain" ] && OPDESK_DOMAIN="$_new_domain"
-    fi
-else
-    # Fresh install
-    echo -e "${YELLOW}Do you have a public domain name for this server?${NC}"
-    echo -e "  ${BLUE}A domain enables HTTPS with a trusted Let's Encrypt certificate.${NC}"
-    echo -e "  ${BLUE}Leave blank to use a self-signed certificate (IP-only access).${NC}"
-    echo -ne "  Domain (e.g. op-desk.com) or press Enter to skip: "
-    read -r _new_domain
-    [ -n "$_new_domain" ] && OPDESK_DOMAIN="$_new_domain"
-fi
+# if [ "$IS_UPDATE" == "true" ]; then
+    # if [ -n "$OPDESK_DOMAIN" ]; then
+        # echo -e "${BLUE}Current domain: $OPDESK_DOMAIN${NC}"
+        # echo -e "  ${GREEN}1)${NC} Keep current domain ($OPDESK_DOMAIN)"
+        # echo -e "  ${GREEN}2)${NC} Change domain"
+        # echo -e "  ${GREEN}3)${NC} Force-renew certificate for $OPDESK_DOMAIN"
+        # echo -ne "Choose [1/2/3] (default: 1): "
+        # read -r _domain_choice
+        # case "${_domain_choice:-1}" in
+            # 2)
+                # echo -ne "  Enter new domain (e.g. op-desk.com): "
+                # read -r _new_domain
+                # [ -n "$_new_domain" ] && OPDESK_DOMAIN="$_new_domain"
+                # ;;
+            # 3)
+                # echo -e "${YELLOW}Force-renewing certificate for $OPDESK_DOMAIN...${NC}"
+                # if ! command_exists certbot; then
+                    # echo -e "${RED}certbot not found — cannot renew.${NC}"
+                # else
+                    # # Use standalone so certbot is not blocked by the current nginx config
+                    # _nginx_was_active=false
+                    # systemctl is-active --quiet nginx 2>/dev/null && _nginx_was_active=true
+                    # sudo systemctl stop nginx 2>/dev/null || true
+                    # sudo certbot certonly --standalone -d "$OPDESK_DOMAIN" \
+                        # --non-interactive --agree-tos \
+                        # -m "${OPDESK_LE_EMAIL:-admin@$OPDESK_DOMAIN}" \
+                        # --force-renewal 2>/dev/null \
+                        # && echo -e "${GREEN}Certificate renewed successfully.${NC}" \
+                        # || echo -e "${RED}Renewal failed. Run: sudo certbot renew${NC}"
+                    # "$_nginx_was_active" && sudo systemctl start nginx 2>/dev/null || true
+                # fi
+                # ;;
+        # esac
+    # else
+        # echo -e "${YELLOW}No domain configured for this installation.${NC}"
+        # echo -e "  ${BLUE}Enter a domain to enable trusted HTTPS, or press Enter to keep self-signed.${NC}"
+        # echo -ne "  Domain (e.g. op-desk.com) or Enter to skip: "
+        # read -r _new_domain
+        # [ -n "$_new_domain" ] && OPDESK_DOMAIN="$_new_domain"
+    # fi
+# else
+    # # Fresh install
+    # echo -e "${YELLOW}Do you have a public domain name for this server?${NC}"
+    # echo -e "  ${BLUE}A domain enables HTTPS with a trusted Let's Encrypt certificate.${NC}"
+    # echo -e "  ${BLUE}Leave blank to use a self-signed certificate (IP-only access).${NC}"
+    # echo -ne "  Domain (e.g. op-desk.com) or press Enter to skip: "
+    # read -r _new_domain
+    # [ -n "$_new_domain" ] && OPDESK_DOMAIN="$_new_domain"
+# fi
 
-NGINX_SERVER_NAME="_"
-NGINX_SSL_CERT="$HTTPS_CERT"
-NGINX_SSL_KEY="$HTTPS_KEY"
+# ===============================================================
+# VOIPIRAN: Non-interactive Nginx identity and TLS configuration
+#
+# OpDesk runs behind dedicated Nginx ports on Issabel:
+#   HTTPS: 9001
+#   HTTP : 8080
+#
+# When no public domain is configured, use the PBX local IP.
+# Use the certificate generated by the OpDesk installer.
+# ===============================================================
+
+LOCAL_IP_ADDR=$(hostname -I | awk '{print $1}')
+
+
+echo -e "${GREEN}VOIPIRAN: Nginx server name: $NGINX_SERVER_NAME${NC}"
+echo -e "${GREEN}VOIPIRAN: Nginx HTTPS port: $NGINX_HTTPS_PORT${NC}"
+echo -e "${GREEN}VOIPIRAN: Nginx HTTP port: $NGINX_HTTP_PORT${NC}"
+echo -e "${GREEN}VOIPIRAN: SSL certificate: $NGINX_SSL_CERT${NC}"
+
+# ===============================================================
+# VOIPIRAN: Disable interactive domain configuration.
+#
+# OpDesk is installed on Issabel using the server IP address.
+# Public domain / Let's Encrypt configuration is intentionally
+# disabled during the automatic VOIPIRAN installation.
+#
+# The installer always uses the self-signed certificate generated
+# above and does not ask the user for a domain.
+# ===============================================================
+
+OPDESK_DOMAIN="${OPDESK_DOMAIN:-}"
+
+echo -e "${GREEN}VOIPIRAN: Domain configuration skipped.${NC}"
+echo -e "${GREEN}VOIPIRAN: Using self-signed HTTPS certificate.${NC}"
 
 # Return the PID of the process LISTENING on a port (empty if none / nginx)
 _listening_pid() {
@@ -766,12 +863,55 @@ _resolve_port_conflict() {
     fi
 }
 
-# Ports Nginx will listen on — may be changed interactively below
-NGINX_HTTPS_PORT=443
-NGINX_HTTP_PORT=80
+# ===============================================================
+# VOIPIRAN: Non-interactive Nginx port configuration
+#
+# Issabel Apache/httpd already uses ports 80 and 443.
+# ContactCenter therefore uses dedicated Nginx ports:
+#
+#   HTTPS: 9001
+#   HTTP : 8080
+#
+# The original interactive port conflict resolver is disabled.
+# ===============================================================
 
-_resolve_port_conflict 443 NGINX_HTTPS_PORT 4443
-_resolve_port_conflict 80  NGINX_HTTP_PORT  8080
+# VOIPIRAN: Original interactive port configuration disabled.
+# NGINX_HTTPS_PORT=443
+# NGINX_HTTP_PORT=80
+# _resolve_port_conflict 443 NGINX_HTTPS_PORT 4443
+# _resolve_port_conflict 80  NGINX_HTTP_PORT 8080
+
+NGINX_HTTPS_PORT=9001
+NGINX_HTTP_PORT=8080
+
+# ===============================================================
+# VOIPIRAN: Non-interactive Nginx configuration
+#
+# Issabel already uses Apache/httpd on ports 80 and 443.
+# ContactCenter therefore uses:
+#   HTTPS: 9001
+#   HTTP : 8080
+#
+# If no public domain is configured, use the PBX local IP.
+# ===============================================================
+
+# VOIPIRAN: Original interactive port configuration disabled.
+# NGINX_HTTPS_PORT=443
+# NGINX_HTTP_PORT=80
+# _resolve_port_conflict 443 NGINX_HTTPS_PORT 4443
+# _resolve_port_conflict 80 NGINX_HTTP_PORT 8080
+
+NGINX_HTTPS_PORT=9001
+NGINX_HTTP_PORT=8080
+
+LOCAL_IP_ADDR=$(hostname -I | awk '{print $1}')
+
+NGINX_SERVER_NAME="${OPDESK_DOMAIN:-$LOCAL_IP_ADDR}"
+
+# VOIPIRAN: Use the self-signed certificate generated by OpDesk.
+NGINX_SSL_CERT="/opt/OpDesk/cert/opdesk_cert.pem"
+NGINX_SSL_KEY="/opt/OpDesk/cert/opdesk_key.pem"
+
 
 # Install Nginx if not present
 if ! command_exists nginx; then
@@ -913,47 +1053,91 @@ fi
 
 # --- Admin Password Setup (fresh install only) ---
 ADMIN_INIT_PASSWORD_HASH=""
-if [ "$IS_UPDATE" != "true" ]; then
-    echo -e "\n${YELLOW}Admin Panel Setup:${NC}"
-    echo -e "  ${BLUE}Press Enter to keep the default password.${NC}"
-    read -s -p "  Enter the password for Admin Panel: " ADMIN_PASSWORD
-    echo ""
-    if [ -z "$ADMIN_PASSWORD" ]; then
-        echo -e "${GREEN}  Using default admin password (from schema.sql).${NC}"
-    else
-        while true; do
-            read -s -p "  Confirm password: " ADMIN_PASSWORD_CONFIRM
-            echo ""
-            if [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; then
-                echo -e "${YELLOW}  Passwords do not match. Please re-enter.${NC}"
-                read -s -p "  Admin password: " ADMIN_PASSWORD
-                echo ""
-                if [ -z "$ADMIN_PASSWORD" ]; then
-                    break
-                fi
-            else
-                break
-            fi
-        done
-        if [ -n "$ADMIN_PASSWORD" ]; then
-            ADMIN_INIT_PASSWORD_HASH=$(python3 -c "
-import sys, bcrypt
-pw = sys.argv[1].encode()
-print(bcrypt.hashpw(pw, bcrypt.gensalt()).decode())
-" "$ADMIN_PASSWORD" 2>/dev/null || python -c "
-import sys, bcrypt
-pw = sys.argv[1].encode()
-print(bcrypt.hashpw(pw, bcrypt.gensalt()).decode())
-" "$ADMIN_PASSWORD" 2>/dev/null || echo "")
-            if [ -z "$ADMIN_INIT_PASSWORD_HASH" ]; then
-                echo -e "${YELLOW}  Warning: Could not generate password hash (bcrypt missing?). Default password will be used.${NC}"
-            else
-                echo "$ADMIN_INIT_PASSWORD_HASH" > "$PROJECT_ROOT/backend/.admin_init_hash"
-                echo -e "${GREEN}  Admin password configured successfully.${NC}"
-            fi
-        fi
-    fi
+# if [ "$IS_UPDATE" != "true" ]; then
+    # echo -e "\n${YELLOW}Admin Panel Setup:${NC}"
+    # echo -e "  ${BLUE}Press Enter to keep the default password.${NC}"
+    # read -s -p "  Enter the password for Admin Panel: " ADMIN_PASSWORD
+    # echo ""
+    # if [ -z "$ADMIN_PASSWORD" ]; then
+        # echo -e "${GREEN}  Using default admin password (from schema.sql).${NC}"
+    # else
+        # while true; do
+            # read -s -p "  Confirm password: " ADMIN_PASSWORD_CONFIRM
+            # echo ""
+            # if [ "$ADMIN_PASSWORD" != "$ADMIN_PASSWORD_CONFIRM" ]; then
+                # echo -e "${YELLOW}  Passwords do not match. Please re-enter.${NC}"
+                # read -s -p "  Admin password: " ADMIN_PASSWORD
+                # echo ""
+                # if [ -z "$ADMIN_PASSWORD" ]; then
+                    # break
+                # fi
+            # else
+                # break
+            # fi
+        # done
+        # if [ -n "$ADMIN_PASSWORD" ]; then
+            # ADMIN_INIT_PASSWORD_HASH=$(python3 -c "
+# import sys, bcrypt
+# pw = sys.argv[1].encode()
+# print(bcrypt.hashpw(pw, bcrypt.gensalt()).decode())
+# " "$ADMIN_PASSWORD" 2>/dev/null || python -c "
+# import sys, bcrypt
+# pw = sys.argv[1].encode()
+# print(bcrypt.hashpw(pw, bcrypt.gensalt()).decode())
+# " "$ADMIN_PASSWORD" 2>/dev/null || echo "")
+            # if [ -z "$ADMIN_INIT_PASSWORD_HASH" ]; then
+                # echo -e "${YELLOW}  Warning: Could not generate password hash (bcrypt missing?). Default password will be used.${NC}"
+            # else
+                # echo "$ADMIN_INIT_PASSWORD_HASH" > "$PROJECT_ROOT/backend/.admin_init_hash"
+                # echo -e "${GREEN}  Admin password configured successfully.${NC}"
+            # fi
+        # fi
+    # fi
+# fi
+# ===============================================================
+# VOIPIRAN: Non-interactive Admin Password Setup
+#
+# IMPORTANT:
+# OpDesk must NOT ask the installer to enter an admin password.
+#
+# The existing VOIPIRAN Laravel panel already contains the
+# administrator password hash in the `voipiran.users` table.
+#
+# Both applications use Laravel-compatible bcrypt hashes.
+# Therefore we reuse the existing VOIPIRAN admin password hash
+# for the OpDesk administrator.
+# ===============================================================
+
+
+ADMIN_INIT_PASSWORD_HASH=""
+
+DB_ROOT_PASSWORD="$(grep -E '^mysqlrootpwd[[:space:]]*=' /etc/issabel.conf | cut -d'=' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+CCPANEL_ADMIN_HASH=$(mysql -u root -p"$DB_ROOT_PASSWORD" -Nse "
+SELECT password
+FROM voipiran.users
+WHERE user_name='admin'
+LIMIT 1;
+" 2>/dev/null)
+
+if [ -n "$CCPANEL_ADMIN_HASH" ]; then
+
+    echo "$CCPANEL_ADMIN_HASH" > "$PROJECT_ROOT/backend/.admin_init_hash"
+
+    chmod 600 "$PROJECT_ROOT/backend/.admin_init_hash"
+
+    echo -e "${GREEN}VOIPIRAN: Admin password hash loaded from VOIPIRAN panel.${NC}"
+
+else
+
+    echo -e "${RED}ERROR: VOIPIRAN admin password hash was not found.${NC}"
+    echo "Expected database: voipiran"
+    echo "Expected user: admin"
+    exit 1
+
 fi
+
+
 
 LOCAL_IP_ADDR=$(hostname -I | awk '{print $1}')
 if [ -n "$OPDESK_DOMAIN" ]; then
@@ -1059,16 +1243,28 @@ APNS_USE_SANDBOX=$APNS_USE_SANDBOX
 # Seconds the dialplan waits after sending the wake push (gives the app time to re-register):
 MOBILE_WAKE_WAIT=$MOBILE_WAKE_WAIT
 EOF
-cd "$PROJECT_ROOT/frontend" && npm install || true
+
+# ===============================================================
+# VOIPIRAN: Frontend dependencies are already bundled/prepared.
+# VOIPIRAN: Do NOT run npm install on the production server.
+# VOIPIRAN: Production deployment uses the pre-built frontend.
+# ===============================================================
+# cd "$PROJECT_ROOT/frontend" && npm install || true
+#cd "$PROJECT_ROOT/frontend" && npm install || true
 
 # --- Step 9: systemd Service ---
 echo -e "\n${YELLOW}Step 9: Configuring OpDesk systemd service...${NC}"
+
+sudo systemctl daemon-reload
+sudo systemctl enable opdesk.service
 
 SERVICE_USER="${SUDO_USER:-$USER}"
 SERVICE_HOME=$(eval echo ~"$SERVICE_USER" 2>/dev/null || echo "$HOME")
 
 if [ ! -f /etc/systemd/system/opdesk.service ]; then
     echo -e "${YELLOW}Creating systemd service...${NC}"
+	
+
     sudo tee /etc/systemd/system/opdesk.service > /dev/null <<EOF
 [Unit]
 Description=OpDesk - IP PBX Management System
@@ -1091,8 +1287,7 @@ SyslogIdentifier=opdesk
 [Install]
 WantedBy=multi-user.target
 EOF
-    sudo systemctl daemon-reload
-    sudo systemctl enable opdesk.service
+
     echo -e "${GREEN}OpDesk service installed and enabled to start on boot.${NC}"
 else
     echo -e "${GREEN}systemd service already exists — skipping creation.${NC}"
@@ -1110,6 +1305,8 @@ fi
 # ===============================================================
 # FINAL SUMMARY REPORT
 # ===============================================================
+
+
 echo -e "\n${YELLOW}Step 10: Generating Installation Report...${NC}"
 
 echo -e "${GREEN}==============================================================="

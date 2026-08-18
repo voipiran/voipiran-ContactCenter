@@ -43,19 +43,20 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 
 if [[ "$MODE" == "production" ]]; then
 
-    # VOIPIRAN: Production uses the pre-built frontend.
-    # Never run npm build on the production server.
-    if [ ! -f "$PROJECT_ROOT/frontend/dist/index.html" ]; then
-        echo -e "${RED}Error: frontend/dist/index.html not found.${NC}"
-        echo -e "${YELLOW}Please build the frontend on the development machine before deployment.${NC}"
-        exit 1
-    fi
+  # VOIPIRAN: Production server uses pre-built frontend.
+  # Frontend must be built before deployment.
+  # Do not run npm build on the production server.
 
-    echo -e "${GREEN}[OpDesk]${NC} Production mode: using pre-built frontend."
+  DIST_INDEX="$PROJECT_ROOT/frontend/dist/index.html"
+
+  if [ ! -f "$DIST_INDEX" ]; then
+    echo -e "${RED}Error: frontend/dist/index.html not found${NC}"
+    exit 1
+  fi
+
+  echo -e "${GREEN}[VOIPIRAN]${NC} Production mode: using pre-built frontend."
 
 fi
-
-echo -e "${BLUE}[OpDesk]${NC} Starting Backend..."
 
 cd "$PROJECT_ROOT/backend" || {
     echo -e "${RED}Error: Backend directory not found${NC}"

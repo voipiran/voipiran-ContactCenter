@@ -1,17 +1,34 @@
 #!/bin/bash
 
 # ===============================================================
-# VOIPIRAN ContactCenter Customizations
+# VOIPIRAN ContactCenter - Production Apply Script
 #
-# This script runs AFTER the upstream install.sh.
+# IMPORTANT:
+# Frontend is PRE-BUILT outside the production server.
+# This script MUST NOT:
+#   - run npm install
+#   - run npm run build
+#   - modify frontend source files
 #
-# It applies only VOIPIRAN-specific changes.
+# Production flow:
+#   Main OpDesk install.sh
+#          ↓
+#   apply.sh
+#          ↓
+#   Deploy pre-built frontend
+#          ↓
+#   Configure Issabel DB
+#          ↓
+#   Configure Nginx
+#          ↓
+#   Enable / start OpDesk
 # ===============================================================
 
 set -e
 
 PROJECT_ROOT="/opt/OpDesk"
 PATCH_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_PACKAGE_ROOT="$(cd "$PATCH_ROOT/.." && pwd)"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -25,18 +42,24 @@ echo -e "${BLUE}       Applying VOIPIRAN ContactCenter changes                ${
 echo -e "${BLUE}===============================================================${NC}"
 echo
 
-# ---------------------------------------------------------------
-# Safety
-# ---------------------------------------------------------------
+# ===============================================================
+# 1. Safety checks
+# ===============================================================
 
-if [ ! -d "$PROJECT_ROOT" ]; then
-    echo -e "${RED}ERROR: $PROJECT_ROOT not found.${NC}"
+if [ "$(id -u)" -ne 0 ]; then
+    echo -e "${RED}ERROR: apply.sh must be run as root.${NC}"
     exit 1
 fi
 
-# ---------------------------------------------------------------
-# Stop OpDesk if it happens to be running
-# ---------------------------------------------------------------
+if [ ! -d "$PROJECT_ROOT" ]; then
+    echo -e "${RED}ERROR: OpDesk project not found:${NC}"
+    echo "$PROJECT_ROOT"
+    exit 1
+fi
+
+# ===============================================================
+# 2. Stop OpDesk before deployment
+# ===============================================================
 
 if systemctl is-active --quiet opdesk.service 2>/dev/null; then
     echo -e "${YELLOW}Stopping OpDesk before applying changes...${NC}"
@@ -44,202 +67,70 @@ if systemctl is-active --quiet opdesk.service 2>/dev/null; then
 fi
 
 # ===============================================================
-# 1. Persian translation
+# 3. Deploy PRE-BUILT frontend
+#
+# VOIPIRAN:
+# The frontend MUST already be built before installation.
+#
+# No npm install.
+# No npm run build.
+# No TypeScript compilation.
 # ===============================================================
 
-echo -e "${YELLOW}Installing Persian translation...${NC}"
+echo -e "${YELLOW}Installing pre-built ContactCenter frontend...${NC}"
 
-mkdir -p "$PROJECT_ROOT/frontend/src/i18n/locales/fa"
-
-cp "$PATCH_ROOT/frontend/fa/translation.json" \
-   "$PROJECT_ROOT/frontend/src/i18n/locales/fa/translation.json"
-
-echo -e "${GREEN}Persian translation installed.${NC}"
-
-# ===============================================================
-# 2. English translation
-# ===============================================================
-
-echo -e "${YELLOW}Installing English translation...${NC}"
-
-if [ -f "$PATCH_ROOT/frontend/en/translation.json" ]; then
-
-    cp "$PATCH_ROOT/frontend/en/translation.json" \
-       "$PROJECT_ROOT/frontend/src/i18n/locales/en/translation.json"
-
-fi
-
-echo -e "${GREEN}English translation installed.${NC}"
-
-# ===============================================================
-# 3. Configure i18n
-# ===============================================================
-
-I18N_FILE="$PROJECT_ROOT/frontend/src/i18n/index.ts"
-
-if [ ! -f "$I18N_FILE" ]; then
-    echo -e "${RED}ERROR: $I18N_FILE not found.${NC}"
-    exit 1
-fi
-
-cp "$I18N_FILE" "$I18N_FILE.voipiran-backup"
-
-python3 - "$I18N_FILE" <<'PY'
-import sys
-import re
-
-path = sys.argv[1]
-
-with open(path, "r", encoding="utf-8") as f:
-    text = f.read()
-
-# VOIPIRAN: Only English and Persian are supported.
-text = re.sub(
-    r"^\s*import\s+(ar|es|pt)\s+from\s+['\"]\.\/locales\/\1\/translation\.json['\"];\s*$",
-    "",
-    text,
-    flags=re.MULTILINE
-)
-
-# VOIPIRAN: Supported languages.
-text = re.sub(
-    r"const\s+SUPPORTED_LANGUAGES\s*=\s*\[[^\]]*\]\s+as\s+const;",
-    "const SUPPORTED_LANGUAGES = ['en', 'fa'] as const;",
-    text
-)
-
-# VOIPIRAN: Persian is RTL.
-if re.search(r"const\s+RTL_LANGUAGES", text):
-    text = re.sub(
-        r"const\s+RTL_LANGUAGES\s*=\s*\[[^\]]*\];",
-        "const RTL_LANGUAGES = ['fa'];",
-        text
-    )
-else:
-    marker = "const SUPPORTED_LANGUAGES = ['en', 'fa'] as const;"
-
-    text = text.replace(
-        marker,
-        "const RTL_LANGUAGES = ['fa'];\n" + marker
-    )
-
-# VOIPIRAN: Persian is the default language.
-text = re.sub(
-    r"(:\s*)'en';",
-    r"\1'fa';",
-    text,
-    count=1
-)
-
-# VOIPIRAN: Use RTL list.
-text = text.replace(
-    "document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';",
-    "document.documentElement.dir = RTL_LANGUAGES.includes(lang) ? 'rtl' : 'ltr';"
-)
-
-text = text.replace(
-    "document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';",
-    "document.documentElement.dir = RTL_LANGUAGES.includes(savedLang) ? 'rtl' : 'ltr';"
-)
-
-with open(path, "w", encoding="utf-8") as f:
-    f.write(text)
-PY
-
-echo -e "${GREEN}i18n configured.${NC}"
-
-# ===============================================================
-# 4. Language Menu
-# ===============================================================
-
-APP_FILE="$PROJECT_ROOT/frontend/src/App.tsx"
-
-if [ ! -f "$APP_FILE" ]; then
-    echo -e "${RED}ERROR: $APP_FILE not found.${NC}"
-    exit 1
-fi
-
-cp "$APP_FILE" "$APP_FILE.voipiran-backup"
-
-python3 - "$APP_FILE" <<'PY'
-import sys
-import re
-
-path = sys.argv[1]
-
-with open(path, "r", encoding="utf-8") as f:
-    text = f.read()
-
-pattern = r"const\s+LANGUAGE_OPTIONS\s*=\s*\[[^\]]*\]\s+as\s+const;"
-
-if not re.search(pattern, text):
-    print("ERROR: LANGUAGE_OPTIONS was not found.")
-    sys.exit(1)
-
-text = re.sub(
-    pattern,
-    "const LANGUAGE_OPTIONS = ['en', 'fa'] as const;",
-    text
-)
-
-with open(path, "w", encoding="utf-8") as f:
-    f.write(text)
-PY
-
-echo -e "${GREEN}Language menu configured: English + Persian.${NC}"
-
-# ===============================================================
-# 5. ContactCenter title
-# ===============================================================
-
-INDEX_FILE="$PROJECT_ROOT/frontend/index.html"
-
-if [ -f "$INDEX_FILE" ]; then
-
-    cp "$INDEX_FILE" "$INDEX_FILE.voipiran-backup"
-
-    sed -i \
-        's/<title>OpDesk<\/title>/<title>ContactCenter<\/title>/g' \
-        "$INDEX_FILE"
-
-    echo -e "${GREEN}ContactCenter branding applied.${NC}"
-
-fi
-
-
-
-
-# ---------------------------------------------------------------
-# VOIPIRAN: Install pre-built frontend
-# The frontend is built on the development machine.
-# The production server must NOT run npm build.
-# ---------------------------------------------------------------
-
-echo -e "${YELLOW}Installing pre-built frontend...${NC}"
-
-PATCH_DIST="$PATCH_ROOT/frontend/dist"
+SOURCE_DIST="$PROJECT_PACKAGE_ROOT/frontend/dist"
 PROJECT_DIST="$PROJECT_ROOT/frontend/dist"
 
-if [ ! -f "$PATCH_DIST/index.html" ]; then
-    echo -e "${RED}ERROR: Pre-built frontend not found in patch.${NC}"
-    echo -e "${YELLOW}Expected:${NC} $PATCH_DIST/index.html"
+if [ ! -f "$SOURCE_DIST/index.html" ]; then
+    echo -e "${RED}ERROR: Pre-built frontend was not found.${NC}"
+    echo
+    echo "Expected:"
+    echo "$SOURCE_DIST/index.html"
+    echo
+    echo "The frontend must be built outside the production server"
+    echo "and the resulting dist/ must be included in the package."
     exit 1
 fi
 
+# Remove old frontend build
 rm -rf "$PROJECT_DIST"
+
+# Create destination
 mkdir -p "$PROJECT_DIST"
 
-cp -a "$PATCH_DIST/." "$PROJECT_DIST/"
+# Copy pre-built frontend
+cp -a "$SOURCE_DIST/." "$PROJECT_DIST/"
 
-echo -e "${GREEN}Pre-built frontend installed.${NC}"
+echo -e "${GREEN}Pre-built frontend installed successfully.${NC}"
 
 # ===============================================================
-# 7. Issabel database configuration
+# 4. Verify frontend deployment
 # ===============================================================
+
+if [ ! -f "$PROJECT_DIST/index.html" ]; then
+    echo -e "${RED}ERROR: Frontend deployment failed.${NC}"
+    exit 1
+fi
+
+ASSET_COUNT=$(find "$PROJECT_DIST/assets" -type f 2>/dev/null | wc -l || true)
+
+echo -e "${GREEN}Frontend verification successful.${NC}"
+echo "Frontend: $PROJECT_DIST"
+echo "Assets:   $ASSET_COUNT files"
+
+# ===============================================================
+# 5. Issabel database configuration
+#
+# VOIPIRAN:
+# Use the existing Issabel MySQL/MariaDB root password.
+# Database:
+#   asterisk
+# ===============================================================
+
+echo -e "${YELLOW}Configuring Issabel database access...${NC}"
 
 if [ -f /etc/issabel.conf ]; then
-
-    echo -e "${YELLOW}Configuring Issabel database access...${NC}"
 
     ROOT_PASS=$(grep -E "^mysqlrootpwd[[:space:]]*=" /etc/issabel.conf \
         | head -1 \
@@ -253,11 +144,15 @@ if [ -f /etc/issabel.conf ]; then
 
     ENV_FILE="$PROJECT_ROOT/backend/.env"
 
-    if [ -f "$ENV_FILE" ]; then
+    if [ ! -f "$ENV_FILE" ]; then
+        echo -e "${RED}ERROR: Backend .env not found:${NC}"
+        echo "$ENV_FILE"
+        exit 1
+    fi
 
-        cp "$ENV_FILE" "$ENV_FILE.voipiran-backup"
+    cp "$ENV_FILE" "$ENV_FILE.voipiran-backup"
 
-        python3 - "$ENV_FILE" "$ROOT_PASS" <<'PY'
+    python3 - "$ENV_FILE" "$ROOT_PASS" <<'PY'
 import sys
 
 path = sys.argv[1]
@@ -278,7 +173,7 @@ found = set()
 for line in lines:
 
     if "=" in line:
-        key = line.split("=", 1)[0]
+        key = line.split("=", 1)[0].strip()
 
         if key in values:
             result.append(f"{key}={values[key]}\n")
@@ -296,20 +191,23 @@ with open(path, "w", encoding="utf-8") as f:
     f.writelines(result)
 PY
 
-        echo -e "${GREEN}Issabel database configuration applied.${NC}"
+    echo -e "${GREEN}Issabel database configuration applied.${NC}"
 
-    fi
+else
+
+    echo -e "${YELLOW}Warning: /etc/issabel.conf not found.${NC}"
+    echo "Issabel database configuration was not modified."
 
 fi
 
 # ===============================================================
-# 8. Nginx ports for Issabel
+# 6. Nginx configuration
 #
 # VOIPIRAN:
 #   HTTP  = 8080
 #   HTTPS = 9001
 #
-# Issabel/Apache already owns standard web ports.
+# Issabel/Apache owns the standard web ports.
 # ===============================================================
 
 echo -e "${YELLOW}Configuring Nginx ports...${NC}"
@@ -361,10 +259,16 @@ if [ -f "$OPDESK_NGINX" ]; then
         "$OPDESK_NGINX" \
         /etc/nginx/conf.d/opdesk.conf
 
+else
+
+    echo -e "${RED}ERROR: OpDesk Nginx configuration not found:${NC}"
+    echo "$OPDESK_NGINX"
+    exit 1
+
 fi
 
 # ---------------------------------------------------------------
-# Test Nginx before restarting
+# Test Nginx before restart
 # ---------------------------------------------------------------
 
 nginx -t
@@ -372,12 +276,12 @@ nginx -t
 systemctl enable nginx
 systemctl restart nginx
 
-echo -e "${GREEN}Nginx configured.${NC}"
+echo -e "${GREEN}Nginx configured successfully.${NC}"
 echo -e "${GREEN}HTTP  = 8080${NC}"
 echo -e "${GREEN}HTTPS = 9001${NC}"
 
 # ===============================================================
-# 9. Backend ownership
+# 7. Backend ownership
 # ===============================================================
 
 if id nginx >/dev/null 2>&1; then
@@ -389,25 +293,72 @@ if id nginx >/dev/null 2>&1; then
 fi
 
 # ===============================================================
-# 10. Do NOT start OpDesk
+# 8. OpDesk systemd service
+#
+# IMPORTANT:
+# Do not disable the service here.
+# install.sh creates/enables the service.
+# apply.sh only makes sure it is enabled and starts it.
 # ===============================================================
 
-# ===============================================================
-# 10. Do NOT start or enable OpDesk
-# VOIPIRAN: OpDesk must not be started automatically by the installer.
-# ===============================================================
+echo -e "${YELLOW}Configuring OpDesk service...${NC}"
 
 systemctl daemon-reload
 
 if systemctl list-unit-files 2>/dev/null | grep -q '^opdesk.service'; then
-    systemctl disable opdesk.service 2>/dev/null || true
-    systemctl stop opdesk.service 2>/dev/null || true
+
+    systemctl enable opdesk.service
+
+    echo -e "${GREEN}OpDesk service enabled.${NC}"
+
+else
+
+    echo -e "${RED}ERROR: opdesk.service was not found.${NC}"
+    exit 1
+
 fi
 
+# ===============================================================
+# 9. Start OpDesk
+# ===============================================================
+
+echo -e "${YELLOW}Starting OpDesk...${NC}"
+
+systemctl start opdesk.service
+
+sleep 2
+
+if systemctl is-active --quiet opdesk.service; then
+
+    echo -e "${GREEN}OpDesk service is running.${NC}"
+
+else
+
+    echo -e "${RED}ERROR: OpDesk service failed to start.${NC}"
+    echo
+    echo "Check:"
+    echo "  systemctl status opdesk --no-pager -l"
+    echo "  journalctl -u opdesk -n 100 --no-pager"
+    exit 1
+
+fi
+
+# ===============================================================
+# 10. Final verification
+# ===============================================================
+
 echo
-echo -e "${GREEN}===============================================================${NC}"
-echo -e "${GREEN}VOIPIRAN customizations completed.${NC}"
-echo -e "${GREEN}===============================================================${NC}"
+echo -e "${BLUE}===============================================================${NC}"
+echo -e "${BLUE}       VOIPIRAN ContactCenter deployment completed             ${NC}"
+echo -e "${BLUE}===============================================================${NC}"
 echo
-echo -e "${YELLOW}Frontend was NOT built.${NC}"
+
+echo -e "${GREEN}Frontend:${NC} pre-built"
+echo -e "${GREEN}Build on server:${NC} NO"
+echo -e "${GREEN}npm install:${NC} NO"
+echo -e "${GREEN}npm run build:${NC} NO"
+echo -e "${GREEN}Language source modification:${NC} NO"
+echo -e "${GREEN}Nginx HTTP:${NC} 8080"
+echo -e "${GREEN}Nginx HTTPS:${NC} 9001"
+echo -e "${GREEN}OpDesk:${NC} running"
 echo
