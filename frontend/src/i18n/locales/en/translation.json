@@ -1,15 +1,13 @@
 {
   "app": {
-    "title": "OpDesk",
-    "subtitle": "Asterisk PBX Real-time Monitor"
+    "title": "ContactCenter",
+    "subtitle": "ContactCenter Real-time Dashboard"
   },
-  "language": {
-    "select": "Language",
-    "en": "English",
-    "ar": "Arabic",
-    "es": "Spanish",
-    "pt": "Portuguese"
-  },
+"language": {
+  "select": "زبان",
+  "en": "English",
+  "fa": "فارسی"
+},
   "nav": {
     "extensions": "Extensions",
     "activeCalls": "Active Calls",
@@ -20,9 +18,7 @@
     "users": "Users",
     "analytics": "Analytics",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu",
-    "logs": "Logs",
-    "contacts": "Contacts"
+    "closeMenu": "Close menu"
   },
   "header": {
     "softphoneRegistered": "Softphone (registered)",
@@ -46,12 +42,7 @@
     "markAllRead": "Mark all as read",
     "archive": "Archive",
     "lastUpdate": "Last update",
-    "monitor": "Monitor",
-    "profile": "Profile & preferences",
-    "preferences": "Preferences",
-    "appearance": "Appearance",
-    "light": "Light",
-    "dark": "Dark"
+    "monitor": "Monitor"
   },
   "stats": {
     "extensions": "Extensions",
@@ -59,8 +50,8 @@
     "waiting": "Waiting"
   },
   "login": {
-    "title": "OpDesk",
-    "subtitle": "Asterisk Operator Panel",
+    "title": "ContactCenter",
+    "subtitle": "ContactCenter Real-time Dashboard",
     "extensionLabel": "Extension or username",
     "extensionPlaceholder": "e.g. 1001 or admin",
     "passwordLabel": "Password",
@@ -81,7 +72,6 @@
     "webrtcDisabled": "WebRTC disabled (click to enable)",
     "webrtcOn": "WebRTC on",
     "webrtcOff": "WebRTC off",
-    "webrtcBadge": "WebRTC",
     "status": {
       "idle": "Idle",
       "ringing": "Ringing",
@@ -134,12 +124,6 @@
     "members": "Members ({{count}})",
     "addMember": "Add Member",
     "extensionPlaceholder": "Extension (e.g., 100)",
-    "selectExtension": "Search extension or name…",
-    "noExtensions": "No available extensions",
-    "loginStatus": "Login status",
-    "statusReady": "Ready",
-    "statusNotReady": "Not Ready",
-    "login": "Log in",
     "namePlaceholder": "Name (optional)",
     "add": "Add",
     "cancel": "Cancel",
@@ -148,8 +132,7 @@
     "unpause": "Unpause",
     "removeStatic": "Cannot remove: Member is statically configured in queues.conf. Edit config and reload Asterisk to remove.",
     "removeDynamic": "Remove from Queue (Dynamic member)",
-    "removeCheck": "Remove from Queue (Will check if removable)",
-    "removeConfirm": "Remove {{member}} from queue {{queue}}?"
+    "removeCheck": "Remove from Queue (Will check if removable)"
   },
   "callLog": {
     "title": "Call History",
@@ -172,13 +155,6 @@
     "allStatuses": "All Statuses",
     "allDirections": "All Directions",
     "allApps": "All Apps",
-    "supervisionHidden": "Supervision hidden ({{count}})",
-    "supervisionShown": "Showing supervision",
-    "supervision": {
-      "LISTEN": "LISTEN",
-      "WHISPER": "WHISPER",
-      "BARGE": "BARGE"
-    },
     "totalCalls": "Total Calls",
     "showing": "Showing {{start}} to {{end}} of {{total}} calls",
     "previous": "Previous",
@@ -202,15 +178,12 @@
       "qos": "QOS"
     },
     "status": {
-      "ANSWERED": "Answered",
-      "NO_ANSWER": "No Answer",
-      "BUSY": "Busy",
-      "FAILURE": "Failed",
-      "ABANDONED": "Abandoned",
-      "CANCELED": "Canceled",
-      "DROPPED": "Dropped",
-      "OUT_OF_REACH": "Out of Reach",
-      "in_progress": "In Progress"
+      "completed": "Completed",
+      "failed": "Failed",
+      "no_answer": "No Answer",
+      "in_progress": "In Progress",
+      "busy": "Busy",
+      "switched_off": "Switched Off"
     },
     "direction": {
       "incoming": "Incoming",
@@ -300,16 +273,7 @@
       "registered": "Registered",
       "error": "Error",
       "notRegistered": "Not registered"
-    },
-    "qos_na": "Signal: N/A",
-    "qos_excellent": "Signal: Excellent",
-    "qos_good": "Signal: Good",
-    "qos_fair": "Signal: Fair",
-    "qos_poor": "Signal: Poor",
-    "quality_mos": "MOS",
-    "quality_jitter": "Jitter",
-    "quality_loss": "Loss",
-    "quality_rtt": "Latency"
+    }
   },
   "users": {
     "title": "All users",
@@ -329,9 +293,6 @@
     "fullName": "Full name",
     "extension": "Extension (optional)",
     "noExtensions": "No extensions in system",
-    "webrtcLabel": "WebRTC softphone",
-    "webrtcHint": "Let this extension register from the browser and the mobile app.",
-    "webrtcSaveFailed": "User saved, but updating WebRTC failed.",
     "role": "Role",
     "monitorModes": "Monitor modes (select one or more)",
     "groupsLabel": "Groups (user gets access to agents and queues from selected groups)",
@@ -368,10 +329,7 @@
       "listen": "Listen",
       "whisper": "Whisper",
       "barge": "Barge"
-    },
-    "searchLabel": "Search users",
-    "searchPlaceholder": "Username, name, extension, group…",
-    "noMatches": "No users match \"{{query}}\""
+    }
   },
   "groups": {
     "title": "All groups",
@@ -412,10 +370,7 @@
     "groupUpdated": "Group updated",
     "groupCreated": "Group created",
     "groupDeleted": "Group deleted",
-    "groupNameRequired": "Group name is required",
-    "searchLabel": "Search groups",
-    "searchPlaceholder": "Group, agent, queue, user…",
-    "noMatches": "No groups match \"{{query}}\""
+    "groupNameRequired": "Group name is required"
   },
   "supervisor": {
     "listen": {
@@ -470,88 +425,7 @@
       "verifySSL": "Verify SSL certificates",
       "savedSuccess": "CRM configuration saved successfully",
       "loadError": "Failed to load CRM configuration",
-      "saveError": "Failed to save CRM configuration",
-      "durationFormat": "Duration format",
-      "durationHint": "How duration and talk time are sent. In seconds mode the keys become durationInSeconds / talkTimeInSeconds, so the receiver cannot misread the unit.",
-      "keyNames": "Outbound key names",
-      "optional": "optional",
-      "keyNamesHint": "Rename any field to the key your CRM expects. Leave blank to use the default.",
-      "collisionWarn": "Two fields would be sent under the same key ({{keys}}). The duplicate rename is dropped and the field keeps its default key.",
-      "outcomeMap": "Outcome values",
-      "outcomeMapHint": "Remap an outcome to what your CRM expects (e.g. BUSY → NO_ANSWER). Applies to both status and disposition. Leave blank to send unchanged.",
-      "stateLive": "Live",
-      "stateOff": "Off",
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "offTitle": "CRM integration is off",
-      "pushTarget": "Push target",
-      "sync": "Call-data sync",
-      "syncPaused": "Paused",
-      "fields": "Fields",
-      "connection": "Connection",
-      "connectionSub": "Where OpDesk reaches your CRM and how it authenticates.",
-      "stored": "stored",
-      "verifySSLDesc": "Turn off only for a CRM using a self-signed certificate.",
-      "blockPrivate": "Block private / LAN addresses (strict SSRF)",
-      "blockPrivateDesc": "Loopback and cloud-metadata are always blocked. Enable only if your CRM is public — it rejects on-prem/LAN URLs.",
-      "delivery": "Delivery",
-      "deliverySub": "When a call ends, where the record goes and which calls qualify.",
-      "syncOffNote": "Call-data sync is paused — no call records are pushed. The connection above stays configured.",
-      "syncEndpoint": "Sync endpoint path",
-      "syncEndpointHint": "Appended to the server URL. Leave blank to use the connection endpoint path.",
-      "httpMethod": "HTTP method",
-      "directions": "Push these call directions",
-      "dirInbound": "Inbound",
-      "dirOutbound": "Outbound",
-      "dirInternal": "Internal",
-      "noDirections": "No direction selected — nothing will be pushed.",
-      "payload": "Payload fields",
-      "payloadSub": "Choose the values to send and, if needed, the key each one lands under.",
-      "selected": "selected",
-      "noCatalog": "The field catalog could not be loaded. Reload the page and try again.",
-      "selectAll": "Select all",
-      "clear": "Clear",
-      "colField": "Field",
-      "colSentAs": "Sent as",
-      "colRename": "Rename to",
-      "previewTitle": "Payload preview",
-      "copyJson": "Copy JSON",
-      "slashWarn": "The endpoint path has no leading slash — it is joined to the server URL exactly as shown above.",
-      "previewPaused": "Call-data sync is paused — nothing is pushed.",
-      "previewEmpty": "No fields selected — the CRM would receive an empty body.",
-      "previewHintAll": "Example values — pushed after every call.",
-      "previewHintNone": "Example values. No direction is selected, so nothing is pushed.",
-      "previewHintSome": "Example values — pushed after every {{dirs}} call.",
-      "unsaved": "Unsaved changes",
-      "allSaved": "All changes saved",
-      "testing": "Testing…",
-      "test": "Test connection",
-      "lookupTitle": "Contact lookup",
-      "lookupSub": "Resolve caller numbers to CRM contact names, shown on the softphone and dashboards. Results are cached server-side.",
-      "lookupOffNote": "Contact lookup is off — calls show bare numbers. The connection above stays configured.",
-      "lookupUrl": "Lookup URL",
-      "lookupUrlHint": "Appended to the server URL. [Number] is replaced with the caller’s number; without it, ?phone=[Number] is added automatically.",
-      "lookupNameTemplate": "Name template",
-      "lookupNameTemplateHint": "Each [path] is a dot/index path into the JSON response (data.0.name reads response.data[0].name). Multiple paths are joined, e.g. first + last name.",
-      "lookupNumberFormat": "Number sent to the CRM",
-      "lookupFmtDigits": "Digits only (201005551234)",
-      "lookupFmtAsIs": "As received (+20 100 555 1234)",
-      "lookupFmtPlus": "International + (+201005551234)",
-      "lookupFmtZeros": "International 00 (00201005551234)",
-      "lookupMatchDigits": "Match last N digits",
-      "lookupMatchDigitsHint": "Caching and verification compare only the last N digits, so +20…, 0020… and 0… match the same contact. 0 = full number.",
-      "lookupVerifyPath": "Verify phone path",
-      "lookupVerifyPathHint": "Path to the phone field of the returned record. A result only counts when it matches the searched number — protects against fuzzy-search false positives.",
-      "lookupTtl": "Unknown-number memory (hours)",
-      "lookupTtlHint": "How long a \"no match\" answer is remembered before the CRM is asked about that number again. Matched contacts are saved to the phonebook permanently.",
-      "lookupTestTitle": "Test lookup",
-      "lookupTestPhone": "Phone number, e.g. +20 100 555 1234",
-      "lookupTestRun": "Test lookup",
-      "lookupTestFound": "Contact found: {{name}}",
-      "lookupTestNoMatch": "The CRM answered, but no name was extracted. Check the name template against the response below.",
-      "lookupTestVerifyFail": "Verification failed — {{detail}}",
-      "lookupTestError": "Lookup test failed",
-      "lookupTestRaw": "CRM response (truncated)"
+      "saveError": "Failed to save CRM configuration"
     },
     "qos": {
       "title": "Quality of Service (QoS)",
@@ -589,11 +463,7 @@
       "status": "Status",
       "statusEnabled": "Enabled",
       "statusDisabled": "Disabled"
-    },
-    "tabs": {
-      "apiKeys": "API Keys"
-    },
-    "adminOnly": "Administrator access required."
+    }
   },
   "time": {
     "justNow": "Just now",
@@ -611,10 +481,7 @@
   },
   "common": {
     "incomingCall": "Incoming call",
-    "noRecording": "No recording",
-    "retry": "Retry",
-    "prev": "Previous",
-    "next": "Next"
+    "noRecording": "No recording"
   },
   "analytics": {
     "title": "Analytics",
@@ -626,7 +493,6 @@
       "overview": "Overview",
       "queues": "Queue Performance",
       "agents": "Agent Performance",
-      "adherence": "Adherence",
       "drilldown": "Drilldown"
     },
     "period": {
@@ -635,8 +501,7 @@
       "last7": "Last 7 Days",
       "last30": "Last 30 Days",
       "thisMonth": "This Month",
-      "custom": "Custom",
-      "label": "Date range"
+      "custom": "Custom"
     },
     "kpi": {
       "sla": "SLA",
@@ -718,7 +583,6 @@
       "exportCsv": "Export CSV",
       "exportXlsx": "Export XLSX",
       "exporting": "Exporting...",
-      "exportFailed": "Export failed. Please try again.",
       "clearFilters": "Clear"
     },
     "settings": {
@@ -732,152 +596,5 @@
       "save": "Save Analytics Settings",
       "saved": "Saved!"
     }
-  },
-  "agent": {
-    "adherence": {
-      "title": "Agent Adherence",
-      "subtitle": "Login, ready, on-call and break time per agent for the selected period.",
-      "agent": "Agent",
-      "login": "Login",
-      "logout": "Logout",
-      "loggedIn": "Logged In",
-      "ready": "Ready",
-      "onCall": "On Call",
-      "wrapUp": "Wrap-up",
-      "notReady": "Not Ready",
-      "occupancy": "Occupancy",
-      "stillIn": "In",
-      "empty": "No agent activity for this period",
-      "exportCsv": "CSV",
-      "exportXlsx": "Excel",
-      "exporting": "Exporting…",
-      "exportFailed": "Export failed. Please try again."
-    }
-  },
-  "logs": {
-    "title": "Logs",
-    "tabs": {
-      "system": "System",
-      "deliveries": "CRM Deliveries"
-    },
-    "system": {
-      "title": "AMI Event Stream",
-      "eventType": "Event type",
-      "allEvents": "All events",
-      "search": "Search",
-      "searchPlaceholder": "Channel, caller ID, queue…",
-      "ami": "AMI",
-      "sip": "SIP",
-      "on": "On",
-      "off": "Off",
-      "amiHint": "Enable or disable AMI event recording",
-      "sipHint": "Interleave raw SIP messages into the stream",
-      "sipFail": "Failed to toggle SIP trace",
-      "pause": "Pause",
-      "resume": "Resume",
-      "export": "Export",
-      "clear": "Clear",
-      "live": "Live",
-      "paused": "Paused",
-      "waiting": "Waiting for AMI activity…",
-      "pausedHint": "Stream paused — resume to receive AMI events.",
-      "offHint": "Recording is off — turn AMI on to stream live events.",
-      "jumpToLatest": "Jump to latest",
-      "eventCount": "{{count}} events"
-    },
-    "deliveries": {
-      "allStatuses": "All results",
-      "allDirections": "All directions",
-      "searchPlaceholder": "caller, destination, call ID…",
-      "time": "Time",
-      "direction": "Direction",
-      "call": "Call",
-      "endpoint": "Endpoint",
-      "result": "Result",
-      "latency": "Latency",
-      "attempt": "Attempt",
-      "request": "Request",
-      "response": "Response",
-      "noResponse": "no response",
-      "empty": "No CRM deliveries in this period.",
-      "resend": "Resend",
-      "resendConfirm": "Resend delivery #{{id}} (originally sent {{when}})?\n\nThe stored request body is replayed as-is through the CRM settings currently in effect.",
-      "resendOk": "Resend queued — a new attempt will appear shortly.",
-      "resendFail": "Resend failed.",
-      "resentFrom": "Resent from #{{id}}",
-      "truncatedHint": "Request body was truncated when logged — cannot be replayed.",
-      "copy": "Copy",
-      "copied": "Copied",
-      "showingCount": "Showing {{count}}",
-      "status": {
-        "success": "Delivered",
-        "failed": "Failed"
-      }
-    }
-  },
-  "notReady": {
-    "title": "Not-Ready Codes",
-    "description": "Pause reasons agents select when going Not-Ready.",
-    "subtitle": "Reason codes agents pick when going Not-Ready. Productive codes count toward paid work; breaks do not.",
-    "add": "Add code",
-    "code": "Code",
-    "label": "Label",
-    "productive": "Productive",
-    "active": "Active",
-    "actions": "Actions",
-    "system": "System",
-    "yes": "Yes",
-    "break": "Break",
-    "enabled": "Enabled",
-    "disabled": "Disabled",
-    "edit": "Edit",
-    "delete": "Delete",
-    "none": "No codes yet",
-    "addTitle": "New reason code",
-    "editTitle": "Edit reason code",
-    "cancel": "Cancel",
-    "save": "Save",
-    "saving": "Saving…",
-    "saveFailed": "Save failed",
-    "confirmDelete": "Delete this reason code?",
-    "basic": "Basic",
-    "color": "Color",
-    "order": "Sort order",
-    "status": "Status",
-    "productiveHint": "Counts as paid work (e.g. Meeting, Training) rather than a break in adherence.",
-    "activeHint": "Inactive codes are hidden from the agent picker."
-  },
-  "contacts": {
-    "title": "Contacts",
-    "loading": "Loading contacts…",
-    "loadError": "Failed to load contacts",
-    "addContact": "Add Contact",
-    "editContact": "Edit Contact",
-    "updateContact": "Update Contact",
-    "formDesc": "Contacts are shown wherever a caller's number appears: dashboards, extensions and the softphone.",
-    "name": "Name",
-    "namePlaceholder": "Full name",
-    "phone": "Phone Number",
-    "phonePlaceholder": "e.g. +20 100 000 0000",
-    "company": "Company",
-    "companyPlaceholder": "Company (optional)",
-    "notes": "Notes",
-    "notesPlaceholder": "Notes (optional)",
-    "cancel": "Cancel",
-    "nameRequired": "Name is required",
-    "phoneRequired": "Phone number must contain digits",
-    "saveError": "Failed to save contact",
-    "deleteError": "Failed to delete contact",
-    "created": "Contact created",
-    "updated": "Contact updated",
-    "deleted": "Contact deleted",
-    "deleteConfirm": "Delete contact \"{{name}}\"?",
-    "searchPlaceholder": "Search name, phone or company…",
-    "searchLabel": "Search contacts",
-    "noContacts": "No contacts yet. Contacts added here or resolved from the CRM appear on all call screens.",
-    "noMatches": "No contacts match your search",
-    "sourceManual": "Manual",
-    "sourceCrm": "CRM",
-    "call": "Call {{name}}"
   }
 }
