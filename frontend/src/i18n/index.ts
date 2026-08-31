@@ -39,13 +39,23 @@ i18n
  * Persian interface must use RTL direction.
  */
 export function setLanguage(lang: string) {
+  // VOIPIRAN:
+  // Only Persian and English are supported.
+  if (!SUPPORTED_LANGUAGES.includes(
+    lang as (typeof SUPPORTED_LANGUAGES)[number]
+  )) {
+    lang = 'fa';
+  }
+
   i18n.changeLanguage(lang);
 
   localStorage.setItem('opdesk-lang', lang);
 
   document.documentElement.lang = lang;
 
-  // VOIPIRAN: Persian uses RTL; English uses LTR.
+  // VOIPIRAN:
+  // Persian = RTL
+  // English = LTR
   document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
 }
 

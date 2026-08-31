@@ -59,13 +59,13 @@ import {
   PauseCircle,
   Terminal,
   KeyRound,
-  BookUser,
+  /*BookUser,*/
 } from 'lucide-react';
 import { quickRanges, type DateRange } from './components/analyticsUtils';
 import { raiseFor } from './lib/api';
 
 type TabType = 'dashboard' | 'extensions' | 'calls' | 'queues' | 'call-log' | 'contacts' | 'groups' | 'users' | 'analytics' | 'logs' | 'settings';
-const LANGUAGE_OPTIONS = ['en', 'ar', 'es', 'pt'] as const;
+const LANGUAGE_OPTIONS = ['fa', 'en'] as const;
 /** Kept in sync with the pre-paint theme script in index.html. */
 const THEME_KEY = 'opdesk:theme';
 
@@ -796,9 +796,11 @@ function App({ onLogout }: AppProps) {
             </button>
 
             {/* Contacts — everyone can browse; editing is admin-only inside the panel */}
+			{/*
             <button className={`sidebar-item${activeTab === 'contacts' ? ' active' : ''}`} onClick={() => selectTab('contacts')} title={sidebarCollapsed ? t('nav.contacts', 'Contacts') : undefined}>
               <BookUser size={16} />{!sidebarCollapsed && t('nav.contacts', 'Contacts')}
             </button>
+			*/}
 
             {getUser()?.role !== 'agent' && (
               <button className={`sidebar-item${activeTab === 'analytics' ? ' active' : ''}`} onClick={() => selectTab('analytics')} title={sidebarCollapsed ? t('nav.analytics') : undefined}>
