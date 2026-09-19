@@ -193,6 +193,33 @@ PY
 
     echo -e "${GREEN}Issabel database configuration applied.${NC}"
 
+
+    # ===============================================================
+    # VOIPIRAN WebRTC configuration
+    # ===============================================================
+
+    echo -e "${YELLOW}Configuring OpDesk WebRTC WebSocket endpoint...${NC}"
+
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+
+    if [ -z "$SERVER_IP" ]; then
+        echo -e "${RED}ERROR: Could not determine server IP.${NC}"
+        exit 1
+    fi
+
+    WEBRTC_URL="wss://${SERVER_IP}:9001/sip-ws"
+
+mysql -u root -p"$ROOT_PASS" -D OpDesk -e \
+    "INSERT INTO OpDesk_settings (setting_key, setting_value)
+     VALUES ('WEBRTC_PBX_SERVER', '$WEBRTC_URL')
+     ON DUPLICATE KEY UPDATE setting_value='$WEBRTC_URL';"
+
+    echo -e "${GREEN}WebRTC endpoint configured:${NC}"
+    echo "$WEBRTC_URL"
+
+
+
+
 else
 
     echo -e "${YELLOW}Warning: /etc/issabel.conf not found.${NC}"
@@ -252,6 +279,25 @@ if [ -f "$OPDESK_NGINX" ]; then
         -e 's/listen[[:space:]]\+443[[:space:]]\+ssl[[:space:]]*;/listen 9001 ssl;/g' \
         -e 's/listen[[:space:]]\+\[::\]:443[[:space:]]\+ssl[[:space:]]*;/listen [::]:9001 ssl;/g' \
         "$OPDESK_NGINX"
+
+
+    # ---------------------------------------------------------------
+    # VOIPIRAN WebRTC / Asterisk WebSocket
+    #
+    # Public:
+    #   wss://SERVER_IP:9001/sip-ws
+    #
+    # Asterisk:
+    #   https://127.0.0.1:8089/ws
+    # ---------------------------------------------------------------
+
+    sed -i \
+        -e 's#proxy_pass http://asterisk_ws/ws;#proxy_pass https://asterisk_ws/ws;#g' \
+        -e '/proxy_pass https://asterisk_ws/ws;/a\        proxy_ssl_verify off;' \
+        -e 's#upstream asterisk_ws { server 127.0.0.1:8088;#upstream asterisk_ws { server 127.0.0.1:8089;#g' \
+        "$OPDESK_NGINX"
+
+    echo -e "${GREEN}Asterisk WebSocket configured: HTTPS 8089/ws${NC}"
 
     mkdir -p /etc/nginx/conf.d
 
