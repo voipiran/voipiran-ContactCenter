@@ -120,6 +120,73 @@ echo "Frontend: $PROJECT_DIST"
 echo "Assets:   $ASSET_COUNT files"
 
 # ===============================================================
+# 4a. VOIPIRAN safety patch: force LTR dial-pad key order
+#
+# The Persian/Arabic RTL UI mirrors the .softphone-dialpad CSS grid,
+# which reverses the 1-2-3 dial-pad key order (shows 3-2-1). The real
+# fix lives in frontend/src/styles/index.css
+# (".softphone-dialpad { direction: ltr; }"), but that touches a core
+# upstream file, so it can be lost if the source tree is re-fetched
+# from the original project before rebuilding.
+#
+# This step re-applies the same fix directly to the already-deployed
+# CSS bundle, so the dial pad keeps the correct key order even if the
+# source-level patch was dropped. The number input intentionally inherits
+# the application's RTL direction. It is idempotent (safe to run every
+# install) and does nothing if the rule already contains the fix or the
+# selector can no longer be found (e.g. renamed upstream).
+# ===============================================================
+
+echo -e "${YELLOW}Applying VOIPIRAN dialpad LTR safety patch...${NC}"
+
+DIALPAD_CSS_FOUND=0
+
+for css_file in "$PROJECT_DIST"/assets/*.css; do
+    [ -f "$css_file" ] || continue
+
+    if grep -q '\.softphone-dialpad{' "$css_file" 2>/dev/null; then
+        DIALPAD_CSS_FOUND=1
+
+        python3 - "$css_file" <<'PY'
+import re
+import sys
+
+path = sys.argv[1]
+
+with open(path, "r", encoding="utf-8") as f:
+    content = f.read()
+
+def append_if_missing(match, required_props):
+    body = match.group(1)
+    normalized = body.replace(" ", "")
+    missing = [prop for prop in required_props if prop.replace(" ", "") not in normalized]
+    if not missing:
+        return match.group(0)
+    if not body.endswith(";"):
+        body += ";"
+    return match.group(0).split("{", 1)[0] + "{" + body + ";".join(missing) + "}"
+
+new_content, _ = re.subn(
+    r"\.softphone-dialpad\{([^}]*)\}",
+    lambda m: append_if_missing(m, ["direction:ltr"]),
+    content,
+    count=1,
+)
+
+if new_content != content:
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+PY
+    fi
+done
+
+if [ "$DIALPAD_CSS_FOUND" -eq 1 ]; then
+    echo -e "${GREEN}Dialpad LTR safety patch verified/applied.${NC}"
+else
+    echo -e "${YELLOW}Warning: .softphone-dialpad rule not found in deployed CSS (selector may have changed upstream).${NC}"
+fi
+
+# ===============================================================
 # 5. Issabel database configuration
 #
 # VOIPIRAN:
@@ -291,11 +358,18 @@ if [ -f "$OPDESK_NGINX" ]; then
     #   https://127.0.0.1:8089/ws
     # ---------------------------------------------------------------
 
+    # Asterisk HTTPS WebSocket
     sed -i \
         -e 's#proxy_pass http://asterisk_ws/ws;#proxy_pass https://asterisk_ws/ws;#g' \
-        -e '/proxy_pass https://asterisk_ws/ws;/a\        proxy_ssl_verify off;' \
         -e 's#upstream asterisk_ws { server 127.0.0.1:8088;#upstream asterisk_ws { server 127.0.0.1:8089;#g' \
         "$OPDESK_NGINX"
+
+    # Add proxy_ssl_verify only if it does not already exist
+    if ! grep -q 'proxy_ssl_verify off;' "$OPDESK_NGINX"; then
+        sed -i \
+            '/proxy_pass https:\/\/asterisk_ws\/ws;/a\        proxy_ssl_verify off;' \
+            "$OPDESK_NGINX"
+    fi
 
     echo -e "${GREEN}Asterisk WebSocket configured: HTTPS 8089/ws${NC}"
 

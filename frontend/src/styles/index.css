@@ -4608,7 +4608,9 @@ select.an-filter-select option:checked {
   pointer-events: none;
 }
 
-/* Dialpad – responsive, scales with viewport */
+/* Dialpad – responsive, scales with viewport.
+   Forced to LTR so the 1-2-3 / 4-5-6 / 7-8-9 grid keeps its natural
+   left-to-right key order even when the app UI is RTL (Persian/Arabic). */
 .softphone-dialpad {
   display: flex;
   flex-direction: column;
@@ -4617,6 +4619,7 @@ select.an-filter-select option:checked {
   width: 100%;
   max-width: min(280px, 95%);
   margin: 0 auto;
+  direction: ltr;
 }
 
 .softphone-dialpad-row {
